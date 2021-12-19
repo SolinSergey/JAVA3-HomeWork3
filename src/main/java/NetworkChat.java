@@ -1,10 +1,11 @@
 import javax.swing.*;
 import java.awt.*;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.*;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 
 public class NetworkChat extends JFrame {
     private JTextField message;
@@ -15,7 +16,10 @@ public class NetworkChat extends JFrame {
     private DataInputStream in;
     private DataOutputStream out;
     private String nick = "";
+    private String login = "";
     private boolean timeOutStatus=false;
+    ArrayList <String> chatHistory = new ArrayList<>();
+    private boolean saveStatus=false;
 
     public NetworkChat() throws IOException {
         setTitle("Сетевой чат");
@@ -36,6 +40,7 @@ public class NetworkChat extends JFrame {
         message.addActionListener(e -> {
             sendMessage();
         });
+
         message.setText("/auth login1 pass1");
         downPanel.add(message);
         sendButton = new JButton("Отправить");
@@ -44,14 +49,80 @@ public class NetworkChat extends JFrame {
         });
         downPanel.add(sendButton);
         add(downPanel,BorderLayout.PAGE_END);
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!saveStatus){
+                    try {
+                        saveHistoryChat();
+                    } catch (IOException ex) {
+                        ex.printStackTrace();
+                    }
+                }
+
+                System.out.println("Окно закрылось");
+                System.out.println(chatHistory);
+                super.windowClosing(e);
+            }
+        });
         setVisible(true);
         openConnection();
         startTread();
 
     }
-    private void closeConnection(){
+
+
+    private void saveHistoryChat() throws IOException {
+        String fileName = "history_"+login+".txt";
+        //File file = new File(fileName);
+        //if (file.exists()){
+        //    file.delete();
+        //}
+        FileWriter fileWriter = new FileWriter(fileName,false);
+        try {
+            for (int i=0; i<chatHistory.size();i++) {
+                fileWriter.write(chatHistory.get(i)+"\n");
+            }
+            fileWriter.close();
+            chatHistory.clear();
+            saveStatus=true;
+        }
+
+        catch (IOException ex){
+            ex.printStackTrace();
+        }
+    }
+
+    private void readHistoryChat() throws IOException {
+        String fileName = "history_"+login+".txt";
+        File test = new File(fileName);
+        if (!test.exists()){
+            test.createNewFile();
+        }
+        FileReader file = new FileReader(fileName);
+        try (BufferedReader reader = new BufferedReader(file)){
+           String str;
+           chatArea.setText("");
+           while ((str = reader.readLine())!=null){
+               chatHistory.add(str);
+               chatArea.append(str+"\n");
+           }
+           reader.close();
+           file.close();
+        } catch (FileNotFoundException ex){
+            System.out.println("История не существует");
+        } catch (IOException ex){
+            ex.printStackTrace();
+        }
+    }
+
+    private void closeConnection() throws IOException {
         if (!timeOutStatus) {
             chatArea.append("# Вы вышли из чата\n");
+            chatHistory.add("# Вы вышли из чата");
+            if (!saveStatus){
+                saveHistoryChat();
+            }
             message.setText("/auth login1 pass1");
             clientsList.setText("");
         }
@@ -90,13 +161,21 @@ public class NetworkChat extends JFrame {
                     String strFromServer = in.readUTF();
                     if (strFromServer.startsWith("/authok")){
                         nick = strFromServer.split(" ")[1];
-                        chatArea.append("# Вы авторизованы как: " +nick + "\n");
+                        login = strFromServer.split(" ")[2];
+                        //System.out.println(strFromServer);
+                        System.out.println(login);
+                        readHistoryChat();
+                        String s="# Вы авторизованы как: " +nick;
+                        saveStatus=false;
+                        chatArea.append(s+"\n");
+                        chatHistory.add(s);
                         socket.setSoTimeout(0);
                         break;
                     }
                     chatArea.append(strFromServer + "\n");
+                    chatHistory.add(strFromServer);
                 }
-                while (true && !timeOutStatus){
+                while (!timeOutStatus){
                     String strFromServer = in.readUTF();
                     if (strFromServer.equalsIgnoreCase("/end")){
                         break;
@@ -107,6 +186,7 @@ public class NetworkChat extends JFrame {
                     }
                     else {
                         chatArea.append(strFromServer + "\n");
+                        chatHistory.add(strFromServer);
                     }
                 }
             } catch (SocketTimeoutException e){
@@ -115,7 +195,11 @@ public class NetworkChat extends JFrame {
             } catch (Exception e){
                 e.printStackTrace();
             } finally {
-             closeConnection();
+                try {
+                    closeConnection();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }).start();
     }
@@ -130,11 +214,12 @@ public class NetworkChat extends JFrame {
                     startTread();
                 }
                 out.writeUTF(trimmedMessage);
-            }catch (IOException e){
-                e.printStackTrace();
+            }catch (IOException ex){
+                ex.printStackTrace();
             }
         }
     }
+
     public static void main(String[] args) throws IOException {
         new NetworkChat();
     }

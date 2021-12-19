@@ -12,6 +12,7 @@ public class ClientHandler {
 
     private String name;
     private String nick;
+    private String login;
 
     public String getName() {
         return name;
@@ -44,10 +45,11 @@ public class ClientHandler {
             String str = in.readUTF();
             if (str.startsWith("/auth")) {
                 String[] parts = str.split("\\s");
+                login = parts[1];
                 nick = myServer.getAuthService().getNickByLoginPass(parts[1], parts[2]);
                 if (nick != null) {
                     if (!myServer.isNickBusy(nick)) {
-                        sendMsg("/authok " + nick);
+                        sendMsg("/authok " + nick + " " + login);
                         name = nick;
                         myServer.broadcastMsg(name + " зашел в чат");
                         myServer.subscribe(this);
