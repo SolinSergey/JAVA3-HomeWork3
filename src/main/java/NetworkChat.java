@@ -105,10 +105,16 @@ public class NetworkChat extends JFrame {
            chatArea.setText("");
            while ((str = reader.readLine())!=null){
                chatHistory.add(str);
-               chatArea.append(str+"\n");
            }
            reader.close();
            file.close();
+           int i=0;
+           if (chatHistory.size()>20){
+               i=chatHistory.size()-20;
+           }
+           for (int j=i;j<chatHistory.size();j++){
+               chatArea.append(chatHistory.get(j)+"\n");
+           }
         } catch (FileNotFoundException ex){
             System.out.println("История не существует");
         } catch (IOException ex){
