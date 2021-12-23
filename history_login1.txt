@@ -1,0 +1,25 @@
+# Вы авторизованы как: nick1
+nick1: 111
+nick1: 222
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 333
+nick1: 020
+nick1: 021
+nick1: 022
+nick1: 023
+nick1: 024
+# Вы авторизованы как: nick1
